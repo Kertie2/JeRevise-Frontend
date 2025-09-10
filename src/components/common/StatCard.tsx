@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from "@codegouvfr/react-dsfr/Card";
+import { fr } from "@codegouvfr/react-dsfr";
 
 interface StatCardProps {
   title: string;
@@ -26,17 +26,18 @@ const StatCard: React.FC<StatCardProps> = ({
   };
 
   return (
-    <Card
-      title={title}
-      desc={description}
-      style={{ textAlign: 'center' }}
-      className={getColorClass()}
-    >
-      {icon && <i className={`${icon} fr-icon--lg`} style={{ marginBottom: '1rem' }} />}
-      <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#000091' }}>
-        {value}
+    <div className={fr.cx("fr-card", "fr-enlarge-link", getColorClass())}>
+      <div className={fr.cx("fr-card__body")}>
+        <div className={fr.cx("fr-card__content")} style={{ textAlign: 'center' }}>
+          <h3 className={fr.cx("fr-card__title")}>{title}</h3>
+          {icon && <i className={`${icon} fr-icon--lg`} style={{ marginBottom: '1rem' }} />}
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#000091' }}>
+            {value}
+          </div>
+          {description && <p className={fr.cx("fr-card__desc")}>{description}</p>}
+        </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

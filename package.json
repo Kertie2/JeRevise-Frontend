@@ -11,7 +11,8 @@
   "dependencies": {
     "@codegouvfr/react-dsfr": "^1.26.0",
     "axios": "^1.11.0",
-    "react": "^18.2.0",
+    "mui": "^0.0.1",
+    "react": "^18.3.1",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.1"
   },

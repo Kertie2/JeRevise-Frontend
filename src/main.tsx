@@ -8,7 +8,7 @@ import "@codegouvfr/react-dsfr/main.css";
 
 startReactDsfr({
   defaultColorScheme: "system",
-  Link: (props: any) => <a {...props} />,
+  Link: ({ href, ...props }: any) => <a href={href} {...props} />,
   useLang: () => "fr"
 });
 

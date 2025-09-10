@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { fr } from "@codegouvfr/react-dsfr";
-import { Card } from "@codegouvfr/react-dsfr/Card";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
@@ -98,23 +97,29 @@ const ProfesseurHome: React.FC = () => {
         <h2>Actions rapides</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
           {dashboardData?.actions_rapides?.map((action: any, index: number) => (
-            <Card
-              key={index}
-              title={action.titre}
-              desc={`${action.count} élément(s)`}
-            >
-              <Badge severity={action.count > 0 ? 'warning' : 'success'}>
-                {action.count}
-              </Badge>
-              <Button
-                priority="secondary"
-                size="small"
-                linkProps={{ href: action.action }}
-                style={{ marginTop: '1rem' }}
-              >
-                Voir
-              </Button>
-            </Card>
+            <div key={index} className={fr.cx("fr-card", "fr-enlarge-link")}>
+              <div className={fr.cx("fr-card__body")}>
+                <div className={fr.cx("fr-card__content")}>
+                  <h3 className={fr.cx("fr-card__title")}>{action.titre}</h3>
+                  <p className={fr.cx("fr-card__desc")}>{action.count} élément(s)</p>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Badge severity={action.count > 0 ? 'warning' : 'success'}>
+                      {action.count}
+                    </Badge>
+                    <div className={fr.cx("fr-card__start")}>
+                      <Button
+                        priority="secondary"
+                        size="small"
+                        linkProps={{ href: action.action }}
+                      >
+                        Voir
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -125,18 +130,23 @@ const ProfesseurHome: React.FC = () => {
           <h2>Chapitres les plus actifs</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
             {dashboardData.chapitres_populaires.map((chapitre: any, index: number) => (
-              <Card
-                key={index}
-                title={chapitre.chapitre}
-                desc={`${chapitre.nb_reponses} réponses • ${chapitre.nb_eleves} élèves`}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Taux de réussite:</span>
-                  <Badge severity={chapitre.taux_reussite >= 70 ? 'success' : 'warning'}>
-                    {chapitre.taux_reussite}%
-                  </Badge>
+              <div key={index} className={fr.cx("fr-card", "fr-enlarge-link")}>
+                <div className={fr.cx("fr-card__body")}>
+                  <div className={fr.cx("fr-card__content")}>
+                    <h3 className={fr.cx("fr-card__title")}>{chapitre.chapitre}</h3>
+                    <p className={fr.cx("fr-card__desc")}>
+                      {chapitre.nb_reponses} réponses • {chapitre.nb_eleves} élèves
+                    </p>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Taux de réussite:</span>
+                      <Badge severity={chapitre.taux_reussite >= 70 ? 'success' : 'warning'}>
+                        {chapitre.taux_reussite}%
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
@@ -146,33 +156,40 @@ const ProfesseurHome: React.FC = () => {
       {dashboardData?.activite_7_jours?.length > 0 && (
         <div>
           <h2>Activité des 7 derniers jours</h2>
-          <Card title="Graphique d'activité" desc="Réponses des élèves par jour">
-            <div style={{ display: 'flex', alignItems: 'end', gap: '0.5rem', height: '200px' }}>
-              {dashboardData.activite_7_jours.map((jour: any, index: number) => (
-                <div
-                  key={index}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    flex: 1
-                  }}
-                >
-                  <div
-                    style={{
-                      backgroundColor: '#000091',
-                      width: '100%',
-                      height: `${Math.max((jour.nb_reponses / Math.max(...dashboardData.activite_7_jours.map((j: any) => j.nb_reponses))) * 150, 5)}px`,
-                      marginBottom: '0.5rem',
-                      borderRadius: '4px 4px 0 0'
-                    }}
-                    title={`${jour.nb_reponses} réponses`}
-                  />
-                  <small>{new Date(jour.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</small>
+          <div className={fr.cx("fr-card")}>
+            <div className={fr.cx("fr-card__body")}>
+              <div className={fr.cx("fr-card__content")}>
+                <h3 className={fr.cx("fr-card__title")}>Graphique d'activité</h3>
+                <p className={fr.cx("fr-card__desc")}>Réponses des élèves par jour</p>
+                
+                <div style={{ display: 'flex', alignItems: 'end', gap: '0.5rem', height: '200px' }}>
+                  {dashboardData.activite_7_jours.map((jour: any, index: number) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        flex: 1
+                      }}
+                    >
+                      <div
+                        style={{
+                          backgroundColor: '#000091',
+                          width: '100%',
+                          height: `${Math.max((jour.nb_reponses / Math.max(...dashboardData.activite_7_jours.map((j: any) => j.nb_reponses))) * 150, 5)}px`,
+                          marginBottom: '0.5rem',
+                          borderRadius: '4px 4px 0 0'
+                        }}
+                        title={`${jour.nb_reponses} réponses`}
+                      />
+                      <small>{new Date(jour.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</small>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>

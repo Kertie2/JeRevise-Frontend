@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { fr } from "@codegouvfr/react-dsfr";
-import { Card } from "@codegouvfr/react-dsfr/Card";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { Input } from "@codegouvfr/react-dsfr/Input";
@@ -9,13 +8,17 @@ import { Upload } from "@codegouvfr/react-dsfr/Upload";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import { createModal } from "@codegouvfr/react-dsfr/Modal";
 import { coursAPI, qcmAPI } from '../../services/api';
-import { Cours } from '../../types';
+import type { Cours } from '../../types';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+
+const coursModal = createModal({
+  id: "cours-modal",
+  isOpenedByDefault: false
+});
 
 const CoursManagement: React.FC = () => {
   const [cours, setCours] = useState<Cours[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newCours, setNewCours] = useState({
     titre: '',
@@ -73,7 +76,7 @@ const CoursManagement: React.FC = () => {
       await coursAPI[endpoint](formData);
 
       setSuccess('Cours créé avec succès !');
-      setShowModal(false);
+      coursModal.close();
       setNewCours({
         titre: '',
         matiere: '',
@@ -110,7 +113,7 @@ const CoursManagement: React.FC = () => {
     <div className={fr.cx("fr-container")}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1>Gestion des cours</h1>
-        <Button onClick={() => setShowModal(true)}>
+        <Button onClick={() => coursModal.open()}>
           Nouveau cours
         </Button>
       </div>
@@ -136,65 +139,71 @@ const CoursManagement: React.FC = () => {
       )}
 
       {cours.length === 0 ? (
-        <Card
-          title="Aucun cours"
-          desc="Vous n'avez pas encore créé de cours. Commencez par ajouter votre premier cours !"
-        >
-          <Button onClick={() => setShowModal(true)}>
-            Créer mon premier cours
-          </Button>
-        </Card>
+        <div className={fr.cx("fr-card", "fr-enlarge-link")}>
+          <div className={fr.cx("fr-card__body")}>
+            <div className={fr.cx("fr-card__content")}>
+              <h3 className={fr.cx("fr-card__title")}>Aucun cours</h3>
+              <p className={fr.cx("fr-card__desc")}>
+                Vous n'avez pas encore créé de cours. Commencez par ajouter votre premier cours !
+              </p>
+              <div className={fr.cx("fr-card__start")}>
+                <Button onClick={() => coursModal.open()}>
+                  Créer mon premier cours
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
           {cours.map(coursItem => (
-            <Card
-              key={coursItem.id}
-              title={coursItem.titre}
-              desc={`${coursItem.matiere} • ${coursItem.chapitre}`}
-            >
-              <div style={{ marginBottom: '1rem' }}>
-                <Badge severity="info">
-                  {new Date(coursItem.created_at).toLocaleDateString('fr-FR')}
-                </Badge>
-                {coursItem.fichier_url && (
-                  <Badge severity="success" style={{ marginLeft: '0.5rem' }}>
-                    Fichier joint
-                  </Badge>
-                )}
-                {coursItem.texte_ocr && (
-                  <Badge severity="success" style={{ marginLeft: '0.5rem' }}>
-                    Texte extrait
-                  </Badge>
-                )}
+            <div key={coursItem.id} className={fr.cx("fr-card", "fr-enlarge-link")}>
+              <div className={fr.cx("fr-card__body")}>
+                <div className={fr.cx("fr-card__content")}>
+                  <h3 className={fr.cx("fr-card__title")}>{coursItem.titre}</h3>
+                  <p className={fr.cx("fr-card__desc")}>{coursItem.matiere} • {coursItem.chapitre}</p>
+                  
+                  <div style={{ marginBottom: '1rem' }}>
+                    <Badge severity="info">
+                      {new Date(coursItem.created_at).toLocaleDateString('fr-FR')}
+                    </Badge>
+                    {coursItem.fichier_url && (
+                      <Badge severity="success" style={{ marginLeft: '0.5rem' }}>
+                        Fichier joint
+                      </Badge>
+                    )}
+                    {coursItem.texte_ocr && (
+                      <Badge severity="success" style={{ marginLeft: '0.5rem' }}>
+                        Texte extrait
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className={fr.cx("fr-card__start")} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <Button
+                      priority="secondary"
+                      size="small"
+                      onClick={() => handleGenerateQCM(coursItem.id)}
+                    >
+                      Générer QCM
+                    </Button>
+                    <Button
+                      priority="tertiary"
+                      size="small"
+                      linkProps={{ href: `/professeur/cours/${coursItem.id}` }}
+                    >
+                      Détails
+                    </Button>
+                  </div>
+                </div>
               </div>
-              
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <Button
-                  priority="secondary"
-                  size="small"
-                  onClick={() => handleGenerateQCM(coursItem.id)}
-                >
-                  Générer QCM
-                </Button>
-                <Button
-                  priority="tertiary"
-                  size="small"
-                  linkProps={{ href: `/professeur/cours/${coursItem.id}` }}
-                >
-                  Détails
-                </Button>
-              </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}
 
       {/* Modal création cours */}
-      <Modal
-        title="Nouveau cours"
-        isOpen={showModal}
-        hide={() => setShowModal(false)}
-      >
+      <coursModal.Component title="Nouveau cours">
         <div style={{ padding: '1rem' }}>
           <Input
             label="Titre du cours"
@@ -275,14 +284,14 @@ const CoursManagement: React.FC = () => {
             </Button>
             <Button
               priority="secondary"
-              onClick={() => setShowModal(false)}
+              onClick={() => coursModal.close()}
               style={{ flex: 1 }}
             >
               Annuler
             </Button>
           </div>
         </div>
-      </Modal>
+      </coursModal.Component>
     </div>
   );
 };

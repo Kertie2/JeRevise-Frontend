@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { fr } from "@codegouvfr/react-dsfr";
-import { Card } from "@codegouvfr/react-dsfr/Card";
-import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { Button } from "@codegouvfr/react-dsfr/Button";
-import { Table } from "@codegouvfr/react-dsfr/Table";
+import { Badge } from "@codegouvfr/react-dsfr/Badge";
 import { eleveAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import StatCard from '../../components/common/StatCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-const Resultats: React.FC = () => {
+const EleveHome: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [chapitres, setChapitres] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    loadData();
+    loadDashboard();
+    loadChapitres();
   }, []);
 
-  const loadData = async () => {
+  const loadDashboard = async () => {
     try {
-      const [dashboardRes, chapitresRes] = await Promise.all([
-        eleveAPI.getDashboard(),
-        eleveAPI.getChapitresDisponibles()
-      ]);
-      setDashboardData(dashboardRes.data);
-      setChapitres(chapitresRes.data);
+      const response = await eleveAPI.getDashboard();
+      setDashboardData(response.data);
     } catch (error) {
-      console.error('Erreur chargement données:', error);
+      console.error('Erreur chargement dashboard:', error);
+    }
+  };
+
+  const loadChapitres = async () => {
+    try {
+      const response = await eleveAPI.getChapitresDisponibles();
+      setChapitres(response.data);
+    } catch (error) {
+      console.error('Erreur chargement chapitres:', error);
     } finally {
       setIsLoading(false);
     }
@@ -53,17 +59,17 @@ const Resultats: React.FC = () => {
   };
 
   if (isLoading) {
-    return <LoadingSpinner message="Chargement de vos résultats..." />;
+    return <LoadingSpinner message="Chargement de votre tableau de bord..." />;
   }
 
   return (
     <div className={fr.cx("fr-container")}>
       <div style={{ marginBottom: '2rem' }}>
-        <h1>Mes résultats</h1>
-        <p>Consultez votre progression détaillée et vos performances</p>
+        <h1>Bonjour {user?.prenom} !</h1>
+        <p>Voici votre progression et vos prochaines révisions</p>
       </div>
 
-      {/* Statistiques globales */}
+      {/* Statistiques personnelles */}
       {dashboardData && (
         <div style={{ 
           display: 'grid', 
@@ -72,9 +78,9 @@ const Resultats: React.FC = () => {
           marginBottom: '2rem'
         }}>
           <StatCard
-            title="Questions répondues"
+            title="Réponses totales"
             value={dashboardData.statistiques.total_reponses}
-            description="Total de vos réponses"
+            description="Questions répondues"
             icon="ri-question-line"
             color="blue"
           />
@@ -88,12 +94,12 @@ const Resultats: React.FC = () => {
           <StatCard
             title="Taux de réussite"
             value={`${dashboardData.statistiques.pourcentage_reussite}%`}
-            description="Votre performance globale"
+            description="Votre performance"
             icon="ri-medal-line"
             color={dashboardData.statistiques.pourcentage_reussite >= 70 ? 'green' : 'orange'}
           />
           <StatCard
-            title="Votre niveau"
+            title="Niveau"
             value={dashboardData.statistiques.niveau.badge}
             description={dashboardData.statistiques.niveau.nom}
             icon="ri-trophy-line"
@@ -102,155 +108,167 @@ const Resultats: React.FC = () => {
         </div>
       )}
 
-      {/* Progression détaillée par chapitre */}
+      {/* Actions rapides */}
       <div style={{ marginBottom: '2rem' }}>
-        <h2>Progression par chapitre</h2>
-        {chapitres.length > 0 ? (
-          <Card>
-            <Table
-              headers={[
-                'Chapitre', 
-                'Questions', 
-                'Progression', 
-                'Taux de réussite', 
-                'Statut', 
-                'Actions'
-              ]}
-              data={chapitres.map(chapitre => [
-                chapitre.nom,
-                `${chapitre.qcm_repondus}/${chapitre.total_qcm}`,
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div 
-                    style={{ 
-                      width: '100px', 
-                      height: '8px', 
-                      backgroundColor: '#f0f0f0', 
-                      borderRadius: '4px',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div 
-                      style={{ 
-                        width: `${chapitre.pourcentage_completion}%`, 
-                        height: '100%', 
-                        backgroundColor: '#000091'
-                      }}
-                    />
-                  </div>
-                  <span>{chapitre.pourcentage_completion}%</span>
-                </div>,
-                chapitre.pourcentage_reussite > 0 ? (
-                  <Badge severity={chapitre.pourcentage_reussite >= 70 ? 'success' : 'warning'}>
-                    {chapitre.pourcentage_reussite}%
-                  </Badge>
-                ) : '-',
-                <Badge severity={getStatutColor(chapitre.statut)}>
-                  {getStatutText(chapitre.statut)}
-                </Badge>,
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <Button
-                    priority="secondary"
-                    size="small"
-                    linkProps={{ href: `/eleve/revisions?chapitre=${encodeURIComponent(chapitre.nom)}` }}
-                  >
-                    {chapitre.statut === 'non_commence' ? 'Commencer' : 'Réviser'}
+        <h2>Actions rapides</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+          <div className={fr.cx("fr-card", "fr-enlarge-link")}>
+            <div className={fr.cx("fr-card__body")}>
+              <div className={fr.cx("fr-card__content")}>
+                <h3 className={fr.cx("fr-card__title")}>Mode révision</h3>
+                <p className={fr.cx("fr-card__desc")}>Révisez vos questions difficiles</p>
+                <div className={fr.cx("fr-card__start")}>
+                  <Button linkProps={{ href: '/eleve/revisions?mode=revision' }}>
+                    Commencer la révision
                   </Button>
-                  {chapitre.statut === 'a_revoir' && (
-                    <Button
-                      priority="tertiary"
-                      size="small"
-                      linkProps={{ href: `/eleve/revisions?chapitre=${encodeURIComponent(chapitre.nom)}&mode=revision` }}
-                    >
-                      Revoir
-                    </Button>
-                  )}
                 </div>
-              ])}
-            />
-          </Card>
-        ) : (
-          <Card
-            title="Aucun chapitre"
-            desc="Vous n'avez pas encore commencé de révisions."
-          >
-            <Button linkProps={{ href: '/eleve/revisions' }}>
-              Commencer à réviser
-            </Button>
-          </Card>
-        )}
+              </div>
+            </div>
+          </div>
+          
+          <div className={fr.cx("fr-card", "fr-enlarge-link")}>
+            <div className={fr.cx("fr-card__body")}>
+              <div className={fr.cx("fr-card__content")}>
+                <h3 className={fr.cx("fr-card__title")}>Nouveau chapitre</h3>
+                <p className={fr.cx("fr-card__desc")}>Découvrez de nouveaux contenus</p>
+                <div className={fr.cx("fr-card__start")}>
+                  <Button linkProps={{ href: '/eleve/revisions' }}>
+                    Explorer les chapitres
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className={fr.cx("fr-card", "fr-enlarge-link")}>
+            <div className={fr.cx("fr-card__body")}>
+              <div className={fr.cx("fr-card__content")}>
+                <h3 className={fr.cx("fr-card__title")}>Mes résultats</h3>
+                <p className={fr.cx("fr-card__desc")}>Consultez votre progression détaillée</p>
+                <div className={fr.cx("fr-card__start")}>
+                  <Button linkProps={{ href: '/eleve/resultats' }}>
+                    Voir les résultats
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Activité récente */}
-      {dashboardData?.activite_recente?.length > 0 && (
+      {/* Questions à revoir */}
+      {dashboardData?.questions_a_revoir?.length > 0 && (
         <div style={{ marginBottom: '2rem' }}>
-          <h2>Activité récente</h2>
-          <Card>
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {dashboardData.activite_recente.map((activite: any, index: number) => (
-                <div 
-                  key={index}
-                  style={{ 
-                    padding: '1rem',
-                    borderBottom: index < dashboardData.activite_recente.length - 1 ? '1px solid #e0e0e0' : 'none',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <strong>{activite.chapitre}</strong>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#666' }}>
-                      {activite.question.substring(0, 80)}...
-                    </p>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Badge severity={activite.correcte ? 'success' : 'error'}>
-                      {activite.correcte ? 'Correct' : 'Incorrect'}
-                    </Badge>
-                    <small style={{ color: '#666' }}>
-                      {new Date(activite.date).toLocaleDateString('fr-FR')}
-                    </small>
-                  </div>
+          <h2>Questions à revoir</h2>
+          <div className={fr.cx("fr-card", "fr-enlarge-link")}>
+            <div className={fr.cx("fr-card__body")}>
+              <div className={fr.cx("fr-card__content")}>
+                <h3 className={fr.cx("fr-card__title")}>
+                  {dashboardData.questions_a_revoir.length} question(s) à réviser
+                </h3>
+                <p className={fr.cx("fr-card__desc")}>Ces questions nécessitent votre attention</p>
+                
+                <div style={{ marginBottom: '1rem' }}>
+                  {dashboardData.questions_a_revoir.slice(0, 3).map((question: any, index: number) => (
+                    <div 
+                      key={index}
+                      style={{ 
+                        padding: '0.5rem',
+                        marginBottom: '0.5rem',
+                        backgroundColor: '#fff5f5',
+                        border: '1px solid #fed7d7',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      <strong>{question.chapitre}</strong>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
+                        {question.question.substring(0, 100)}...
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Progression dans le temps */}
-      {dashboardData?.progression_chapitres?.length > 0 && (
-        <div>
-          <h2>Évolution par matière</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-            {dashboardData.progression_chapitres.map((prog: any, index: number) => (
-              <Card
-                key={index}
-                title={prog.chapitre}
-                desc={`${prog.total_questions} questions répondues`}
-              >
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: prog.pourcentage >= 70 ? '#27a845' : '#ffc107' }}>
-                    {prog.pourcentage}%
-                  </div>
-                  <p style={{ margin: '0.5rem 0', color: '#666' }}>
-                    {prog.bonnes_reponses}/{prog.total_questions} correctes
-                  </p>
-                  <Button
-                    priority="tertiary"
-                    size="small"
-                    linkProps={{ href: `/eleve/revisions?chapitre=${encodeURIComponent(prog.chapitre)}` }}
+                
+                <div className={fr.cx("fr-card__start")}>
+                  <Button 
+                    priority="secondary"
+                    linkProps={{ href: '/eleve/revisions?mode=revision' }}
                   >
-                    Réviser
+                    Réviser maintenant
                   </Button>
                 </div>
-              </Card>
-            ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Progression par chapitre */}
+      <div>
+        <h2>Vos chapitres</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+          {chapitres.map((chapitre, index) => (
+            <div key={index} className={fr.cx("fr-card", "fr-enlarge-link")}>
+              <div className={fr.cx("fr-card__body")}>
+                <div className={fr.cx("fr-card__content")}>
+                  <h3 className={fr.cx("fr-card__title")}>{chapitre.nom}</h3>
+                  <p className={fr.cx("fr-card__desc")}>
+                    {chapitre.qcm_repondus}/{chapitre.total_qcm} questions répondues
+                  </p>
+                  
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Progression:</span>
+                      <span>{chapitre.pourcentage_completion}%</span>
+                    </div>
+                    <div 
+                      style={{ 
+                        width: '100%', 
+                        height: '8px', 
+                        backgroundColor: '#f0f0f0', 
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div 
+                        style={{ 
+                          width: `${chapitre.pourcentage_completion}%`, 
+                          height: '100%', 
+                          backgroundColor: '#000091',
+                          transition: 'width 0.3s ease'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <Badge severity={getStatutColor(chapitre.statut)}>
+                      {getStatutText(chapitre.statut)}
+                    </Badge>
+                    {chapitre.pourcentage_reussite > 0 && (
+                      <Badge severity={chapitre.pourcentage_reussite >= 70 ? 'success' : 'warning'}>
+                        {chapitre.pourcentage_reussite}% réussite
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className={fr.cx("fr-card__start")}>
+                    <Button
+                      priority={chapitre.statut === 'non_commence' ? 'primary' : 'secondary'}
+                      size="small"
+                      linkProps={{ href: `/eleve/revisions?chapitre=${encodeURIComponent(chapitre.nom)}` }}
+                      style={{ width: '100%' }}
+                    >
+                      {chapitre.statut === 'non_commence' ? 'Commencer' : 'Continuer'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default Resultats;
+export default EleveHome;

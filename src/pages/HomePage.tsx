@@ -1,6 +1,5 @@
 import React from 'react';
 import { fr } from "@codegouvfr/react-dsfr";
-import { Card } from "@codegouvfr/react-dsfr/Card";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Tile } from "@codegouvfr/react-dsfr/Tile";
 import { useAuth } from '../contexts/AuthContext';
@@ -19,12 +18,17 @@ const HomePage: React.FC = () => {
         borderRadius: '8px',
         margin: '2rem 0'
       }}>
-        <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+        <img 
+          src="https://raw.githubusercontent.com/JeRevise/JeRevise/refs/heads/main/svgviewer-png-output.png" 
+          alt="Logo JeRevise" 
+          style={{ width: '600px', marginBottom: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }} 
+        />
+        {/* <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>
           JeRevise
         </h1>
         <p style={{ fontSize: '1.25rem', marginBottom: '2rem', opacity: 0.9 }}>
           La plateforme de révision intelligente pour les collèges
-        </p>
+        </p> */}
         {!user && (
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <Button
@@ -51,7 +55,9 @@ const HomePage: React.FC = () => {
           Une révision moderne et efficace
         </h2>
         
-        <div style={{ 
+        <div 
+        className="container"
+        style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
           gap: '2rem' 
@@ -59,21 +65,21 @@ const HomePage: React.FC = () => {
           <Tile
             title="Pour les professeurs"
             desc="Créez des QCM automatiquement à partir de vos cours grâce à l'IA"
-            linkProps={!user ? { href: "/inscription" } : undefined}
-            imageUrl="https://via.placeholder.com/300x200/000091/FFFFFF?text=Professeurs"
+            linkProps={{ href: "/inscription" }}
+            imageUrl="https://img.icons8.com/color/96/teacher.png"
           />
           
           <Tile
             title="Pour les élèves"
             desc="Révisez de manière ciblée avec un suivi personnalisé de vos progrès"
-            linkProps={!user ? { href: "/inscription" } : undefined}
-            imageUrl="https://via.placeholder.com/300x200/3558A0/FFFFFF?text=Élèves"
+            linkProps={{ href: "/inscription" }}
+            imageUrl="https://img.icons8.com/emoji/96/man-student.png"
           />
           
           <Tile
             title="IA Intégrée"
             desc="Génération automatique de questions pertinentes depuis vos documents"
-            imageUrl="https://via.placeholder.com/300x200/6A6AF4/FFFFFF?text=IA"
+            imageUrl="https://img.icons8.com/fluency/50/artificial-intelligence.png"
           />
         </div>
       </div>
@@ -99,27 +105,30 @@ const HomePage: React.FC = () => {
             <p>Les élèves révisent avec un suivi personnalisé de leurs progrès</p>
           </div>
           
-          <Card
-            title="Open Source"
-            desc="JeRevise est une plateforme open source, développée pour l'éducation."
-            style={{ height: 'fit-content' }}
-          >
-            <Button
-              priority="secondary"
-              linkProps={{ 
-                href: "https://github.com/JeRevise", 
-                target: "_blank" 
-              }}
-            >
-              Voir sur GitHub
-            </Button>
-          </Card>
+          <div className={fr.cx("fr-card")} style={{ height: 'fit-content' }}>
+            <div className={fr.cx("fr-card__body")}>
+              <div className={fr.cx("fr-card__content")}>
+                <h3 className={fr.cx("fr-card__title")}>Open Source</h3>
+                <p className={fr.cx("fr-card__desc")}>JeRevise est une plateforme open source, développée pour l'éducation.</p>
+                <div className={fr.cx("fr-card__start")}>
+                  <Button
+                    priority="secondary"
+                    linkProps={{ 
+                      href: "https://github.com/JeRevise", 
+                      target: "_blank" 
+                    }}
+                  >
+                    Voir sur GitHub
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
       <div style={{ 
-        backgroundColor: '#f6f6f6', 
         padding: '3rem', 
         borderRadius: '8px',
         textAlign: 'center',
@@ -142,10 +151,6 @@ const HomePage: React.FC = () => {
           <div>
             <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#000091' }}>6e-3e</div>
             <div>Tous niveaux collège</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#000091' }}>RGPD</div>
-            <div>Données sécurisées</div>
           </div>
         </div>
       </div>

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { fr } from "@codegouvfr/react-dsfr";
-import { Card } from "@codegouvfr/react-dsfr/Card";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Checkbox } from "@codegouvfr/react-dsfr/Checkbox";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import { authAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Classe, Matiere } from '../../types';
+import type { Classe, Matiere } from '../../types';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const ConfigurationInitiale: React.FC = () => {
@@ -18,7 +17,7 @@ const ConfigurationInitiale: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const { user, login } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -54,11 +53,10 @@ const ConfigurationInitiale: React.FC = () => {
         matieres_ids: selectedMatieres
       });
 
-      // Mettre à jour l'état utilisateur
       if (user) {
         const updatedUser = { ...user, premiere_connexion: false };
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        window.location.reload(); // Recharger pour mettre à jour le contexte
+        window.location.reload();
       }
     } catch (error) {
       setError('Erreur lors de la configuration');
@@ -80,55 +78,30 @@ const ConfigurationInitiale: React.FC = () => {
   return (
     <div className={fr.cx("fr-container")}>
       <div style={{ maxWidth: '800px', margin: '2rem auto' }}>
-        <Card
-          title="Configuration de votre compte"
-          desc="Bienvenue ! Configurons votre compte professeur en sélectionnant vos matières et classes."
-        >
-          <div style={{ marginBottom: '2rem' }}>
-            <h3>Matières enseignées</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              {matieres.map(matiere => (
-                <Checkbox
-                  key={matiere.id}
-                  options={[
-                    {
-                      label: matiere.nom,
-                      nativeInputProps: {
-                        checked: selectedMatieres.includes(matiere.id),
-                        onChange: (e) => {
-                          if (e.target.checked) {
-                            setSelectedMatieres([...selectedMatieres, matiere.id]);
-                          } else {
-                            setSelectedMatieres(selectedMatieres.filter(id => id !== matiere.id));
-                          }
-                        }
-                      }
-                    }
-                  ]}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '2rem' }}>
-            <h3>Classes gérées</h3>
-            {Object.entries(groupedClasses).map(([niveau, classesNiveau]) => (
-              <div key={niveau} style={{ marginBottom: '1rem' }}>
-                <h4>{niveau}</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '1rem' }}>
-                  {classesNiveau.map(classe => (
+        <div className={fr.cx("fr-card", "fr-enlarge-link")}>
+          <div className={fr.cx("fr-card__body")}>
+            <div className={fr.cx("fr-card__content")}>
+              <h3 className={fr.cx("fr-card__title")}>Configuration de votre compte</h3>
+              <p className={fr.cx("fr-card__desc")}>
+                Bienvenue ! Configurons votre compte professeur en sélectionnant vos matières et classes.
+              </p>
+              
+              <div style={{ marginBottom: '2rem' }}>
+                <h4>Matières enseignées</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  {matieres.map(matiere => (
                     <Checkbox
-                      key={classe.id}
+                      key={matiere.id}
                       options={[
                         {
-                          label: classe.nom,
+                          label: matiere.nom,
                           nativeInputProps: {
-                            checked: selectedClasses.includes(classe.id),
+                            checked: selectedMatieres.includes(matiere.id),
                             onChange: (e) => {
                               if (e.target.checked) {
-                                setSelectedClasses([...selectedClasses, classe.id]);
+                                setSelectedMatieres([...selectedMatieres, matiere.id]);
                               } else {
-                                setSelectedClasses(selectedClasses.filter(id => id !== classe.id));
+                                setSelectedMatieres(selectedMatieres.filter(id => id !== matiere.id));
                               }
                             }
                           }
@@ -138,25 +111,56 @@ const ConfigurationInitiale: React.FC = () => {
                   ))}
                 </div>
               </div>
-            ))}
+
+              <div style={{ marginBottom: '2rem' }}>
+                <h4>Classes gérées</h4>
+                {Object.entries(groupedClasses).map(([niveau, classesNiveau]) => (
+                  <div key={niveau} style={{ marginBottom: '1rem' }}>
+                    <h5>{niveau}</h5>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '1rem' }}>
+                      {classesNiveau.map(classe => (
+                        <Checkbox
+                          key={classe.id}
+                          options={[
+                            {
+                              label: classe.nom,
+                              nativeInputProps: {
+                                checked: selectedClasses.includes(classe.id),
+                                onChange: (e) => {
+                                  if (e.target.checked) {
+                                    setSelectedClasses([...selectedClasses, classe.id]);
+                                  } else {
+                                    setSelectedClasses(selectedClasses.filter(id => id !== classe.id));
+                                  }
+                                }
+                              }
+                            }
+                          ]}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {error && (
+                <Alert
+                  severity="error"
+                  title="Erreur"
+                  description={error}
+                />
+              )}
+
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving || selectedClasses.length === 0 || selectedMatieres.length === 0}
+                style={{ width: '100%' }}
+              >
+                {isSaving ? 'Configuration...' : 'Finaliser la configuration'}
+              </Button>
+            </div>
           </div>
-
-          {error && (
-            <Alert
-              severity="error"
-              title="Erreur"
-              description={error}
-            />
-          )}
-
-          <Button
-            onClick={handleSubmit}
-            disabled={isSaving || selectedClasses.length === 0 || selectedMatieres.length === 0}
-            style={{ width: '100%' }}
-          >
-            {isSaving ? 'Configuration...' : 'Finaliser la configuration'}
-          </Button>
-        </Card>
+        </div>
       </div>
     </div>
   );

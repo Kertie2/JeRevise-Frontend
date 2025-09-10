@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { fr } from "@codegouvfr/react-dsfr";
-import { Card } from "@codegouvfr/react-dsfr/Card";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { RadioButtons } from "@codegouvfr/react-dsfr/RadioButtons";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import { authAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Classe } from '../../types';
+import type { Classe } from '../../types';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const ConfigurationClasse: React.FC = () => {
@@ -25,7 +24,6 @@ const ConfigurationClasse: React.FC = () => {
   const loadClasses = async () => {
     try {
       const response = await authAPI.getClasses();
-      // Filtrer pour ne garder que les classes normales (pas brevet)
       const classesNormales = response.data.filter((c: Classe) => c.niveau !== 'brevet');
       setClasses(classesNormales);
     } catch (error) {
@@ -47,7 +45,6 @@ const ConfigurationClasse: React.FC = () => {
     try {
       await authAPI.setClasseEleve(parseInt(selectedClasse));
       
-      // Mettre à jour l'état utilisateur
       if (user) {
         const updatedUser = { ...user, first_login: false, classe_id: parseInt(selectedClasse) };
         localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -73,43 +70,52 @@ const ConfigurationClasse: React.FC = () => {
   return (
     <div className={fr.cx("fr-container")}>
       <div style={{ maxWidth: '600px', margin: '2rem auto' }}>
-        <Card
-          title="Sélection de votre classe"
-          desc={`Bonjour ${user?.prenom} ! Pour commencer à utiliser JeRevise, veuillez sélectionner votre classe.`}
-        >
-          <div style={{ marginBottom: '2rem' }}>
-            {Object.entries(groupedClasses).map(([niveau, classesNiveau]) => (
-              <div key={niveau} style={{ marginBottom: '1.5rem' }}>
-                <h3>{niveau}</h3>
-                <RadioButtons
-                  legend={`Classes de ${niveau}`}
-                  options={classesNiveau.map(classe => ({
-                    label: `${niveau}${classe.nom}`,
-                    nativeInputProps: { value: classe.id.toString() }
-                  }))}
-                  state={selectedClasse}
-                  onChange={setSelectedClasse}
-                />
+        <div className={fr.cx("fr-card", "fr-enlarge-link")}>
+          <div className={fr.cx("fr-card__body")}>
+            <div className={fr.cx("fr-card__content")}>
+              <h3 className={fr.cx("fr-card__title")}>Sélection de votre classe</h3>
+              <p className={fr.cx("fr-card__desc")}>
+                Bonjour {user?.prenom} ! Pour commencer à utiliser JeRevise, veuillez sélectionner votre classe.
+              </p>
+              
+              <div style={{ marginBottom: '2rem' }}>
+                {Object.entries(groupedClasses).map(([niveau, classesNiveau]) => (
+                  <div key={niveau} style={{ marginBottom: '1.5rem' }}>
+                    <h4>{niveau}</h4>
+                    <RadioButtons
+                      legend={`Classes de ${niveau}`}
+                      options={classesNiveau.map(classe => ({
+                        label: `${classe.nom}`,
+                        nativeInputProps: { 
+                          value: classe.id.toString(),
+                          name: `classe-${niveau}`
+                        }
+                      }))}
+                      state={selectedClasse}
+                      onChange={setSelectedClasse}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+
+              {error && (
+                <Alert
+                  severity="error"
+                  title="Erreur"
+                  description={error}
+                />
+              )}
+
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving || !selectedClasse}
+                style={{ width: '100%' }}
+              >
+                {isSaving ? 'Configuration...' : 'Confirmer ma classe'}
+              </Button>
+            </div>
           </div>
-
-          {error && (
-            <Alert
-              severity="error"
-              title="Erreur"
-              description={error}
-            />
-          )}
-
-          <Button
-            onClick={handleSubmit}
-            disabled={isSaving || !selectedClasse}
-            style={{ width: '100%' }}
-          >
-            {isSaving ? 'Configuration...' : 'Confirmer ma classe'}
-          </Button>
-        </Card>
+        </div>
       </div>
     </div>
   );

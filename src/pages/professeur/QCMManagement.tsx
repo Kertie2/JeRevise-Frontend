@@ -1,79 +1,121 @@
 import React, { useState, useEffect } from 'react';
 import { fr } from "@codegouvfr/react-dsfr";
-import { Card } from "@codegouvfr/react-dsfr/Card";
 import { Button } from "@codegouvfr/react-dsfr/Button";
 import { Badge } from "@codegouvfr/react-dsfr/Badge";
+import { Input } from "@codegouvfr/react-dsfr/Input";
+import { Select } from "@codegouvfr/react-dsfr/Select";
+import { Upload } from "@codegouvfr/react-dsfr/Upload";
 import { Alert } from "@codegouvfr/react-dsfr/Alert";
 import { createModal } from "@codegouvfr/react-dsfr/Modal";
-import { Input } from "@codegouvfr/react-dsfr/Input";
-import { RadioButtons } from "@codegouvfr/react-dsfr/RadioButtons";
-import { qcmAPI } from '../../services/api';
-import { QCM } from '../../types';
+import { coursAPI, qcmAPI } from '../../services/api';
+import type { Cours } from '../../types';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-const QCMManagement: React.FC = () => {
-  const [qcmsEnAttente, setQcmsEnAttente] = useState<QCM[]>([]);
+const coursModal = createModal({
+  id: "cours-modal",
+  isOpenedByDefault: false
+});
+
+const CoursManagement: React.FC = () => {
+  const [cours, setCours] = useState<Cours[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedQCM, setSelectedQCM] = useState<QCM | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newCours, setNewCours] = useState({
+    titre: '',
+    matiere: '',
+    chapitre: '',
+    type_programme: 'normal',
+    niveau_cible: '6e',
+    fichier: null as File | null
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [editedQCM, setEditedQCM] = useState<Partial<QCM>>({});
 
   useEffect(() => {
-    loadQCMsEnAttente();
+    loadCours();
   }, []);
 
-  const loadQCMsEnAttente = async () => {
+  const loadCours = async () => {
     try {
-      const response = await qcmAPI.getQCMEnAttente();
-      setQcmsEnAttente(response.data);
+      const response = await coursAPI.getMesCours();
+      setCours(response.data);
     } catch (error) {
-      console.error('Erreur chargement QCM:', error);
+      console.error('Erreur chargement cours:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleValidateQCM = async (qcmId: number, action: string, modifications?: any) => {
-    setIsProcessing(true);
+  const handleCreateCours = async () => {
+    if (!newCours.titre || !newCours.matiere || !newCours.chapitre) {
+      setError('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    setIsCreating(true);
     setError('');
 
     try {
-      await qcmAPI.validerQCM(qcmId, { action, modifications });
-      setSuccess(`QCM ${action === 'valider' ? 'validé' : action === 'modifier' ? 'modifié' : 'supprimé'} avec succès !`);
-      setShowModal(false);
-      loadQCMsEnAttente();
+      const formData = new FormData();
+      formData.append('titre', newCours.titre);
+      formData.append('matiere', newCours.matiere);
+      formData.append('chapitre', newCours.chapitre);
+      
+      if (newCours.type_programme !== 'normal') {
+        formData.append('type_programme', newCours.type_programme);
+        if (newCours.type_programme === 'hors_programme') {
+          formData.append('niveau_cible', newCours.niveau_cible);
+        }
+      }
+      
+      if (newCours.fichier) {
+        formData.append('fichier', newCours.fichier);
+      }
+
+      const endpoint = newCours.type_programme === 'normal' ? 'creerCours' : 'creerCoursSpecial';
+      await coursAPI[endpoint](formData);
+
+      setSuccess('Cours créé avec succès !');
+      coursModal.close();
+      setNewCours({
+        titre: '',
+        matiere: '',
+        chapitre: '',
+        type_programme: 'normal',
+        niveau_cible: '6e',
+        fichier: null
+      });
+      loadCours();
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Erreur lors du traitement du QCM');
+      setError(error.response?.data?.message || 'Erreur lors de la création du cours');
     } finally {
-      setIsProcessing(false);
+      setIsCreating(false);
     }
   };
 
-  const openEditModal = (qcm: QCM) => {
-    setSelectedQCM(qcm);
-    setEditedQCM({
-      question: qcm.question,
-      reponse_1: qcm.reponse_1,
-      reponse_2: qcm.reponse_2,
-      reponse_3: qcm.reponse_3,
-      reponse_4: qcm.reponse_4,
-      bonne_reponse: qcm.bonne_reponse
-    });
-    setShowModal(true);
+  const handleGenerateQCM = async (coursId: number) => {
+    try {
+      await qcmAPI.traiterCours({ cours_id: coursId, nombre_questions: 5 });
+      setSuccess('QCM générés avec succès ! Vous pouvez les valider dans l\'onglet QCM.');
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Erreur lors de la génération des QCM');
+    }
   };
 
   if (isLoading) {
-    return <LoadingSpinner message="Chargement des QCM en attente..." />;
+    return <LoadingSpinner message="Chargement de vos cours..." />;
   }
+
+  const matieres = ['Mathématiques', 'Français', 'Histoire-Géographie', 'Sciences et Vie de la Terre', 'Physique-Chimie', 'Anglais', 'Espagnol'];
+  const niveaux = ['6e', '5e', '4e', '3e'];
 
   return (
     <div className={fr.cx("fr-container")}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1>Gestion des QCM</h1>
-        <p>Validez, modifiez ou supprimez les QCM générés par l'IA</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1>Gestion des cours</h1>
+        <Button onClick={() => coursModal.open()}>
+          Nouveau cours
+        </Button>
       </div>
 
       {success && (
@@ -96,190 +138,162 @@ const QCMManagement: React.FC = () => {
         />
       )}
 
-      {qcmsEnAttente.length === 0 ? (
-        <Card
-          title="Aucun QCM en attente"
-          desc="Tous vos QCM ont été traités ! Créez de nouveaux cours pour générer plus de QCM."
-        >
-          <Button linkProps={{ href: '/professeur/cours' }}>
-            Gérer mes cours
-          </Button>
-        </Card>
-      ) : (
-        <>
-          <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <Badge severity="warning">{qcmsEnAttente.length} QCM en attente</Badge>
-            <Button
-              priority="tertiary"
-              size="small"
-              onClick={loadQCMsEnAttente}
-            >
-              Actualiser
-            </Button>
+      {cours.length === 0 ? (
+        <div className={fr.cx("fr-card", "fr-enlarge-link")}>
+          <div className={fr.cx("fr-card__body")}>
+            <div className={fr.cx("fr-card__content")}>
+              <h3 className={fr.cx("fr-card__title")}>Aucun cours</h3>
+              <p className={fr.cx("fr-card__desc")}>
+                Vous n'avez pas encore créé de cours. Commencez par ajouter votre premier cours !
+              </p>
+              <div className={fr.cx("fr-card__start")}>
+                <Button onClick={() => coursModal.open()}>
+                  Créer mon premier cours
+                </Button>
+              </div>
+            </div>
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
-            {qcmsEnAttente.map(qcm => (
-              <Card
-                key={qcm.id}
-                title={`Question ${qcm.id}`}
-                desc={qcm.id_chapitre}
-              >
-                <div style={{ marginBottom: '1rem' }}>
-                  <strong>Question :</strong>
-                  <p style={{ margin: '0.5rem 0', padding: '0.5rem', backgroundColor: '#f6f6f6', borderRadius: '4px' }}>
-                    {qcm.question}
-                  </p>
-                </div>
-
-                <div style={{ marginBottom: '1rem' }}>
-                  <strong>Réponses :</strong>
-                  <div style={{ marginTop: '0.5rem' }}>
-                    {[1, 2, 3, 4].map(num => (
-                      <div 
-                        key={num}
-                        style={{ 
-                          padding: '0.5rem',
-                          margin: '0.25rem 0',
-                          backgroundColor: qcm.bonne_reponse === num ? '#e8f5e8' : '#f9f9f9',
-                          border: qcm.bonne_reponse === num ? '2px solid #27a845' : '1px solid #ddd',
-                          borderRadius: '4px',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <strong>{num}. </strong>
-                        <span style={{ marginLeft: '0.5rem' }}>
-                          {qcm[`reponse_${num}` as keyof QCM] as string}
-                        </span>
-                        {qcm.bonne_reponse === num && (
-                          <Badge severity="success" style={{ marginLeft: 'auto' }}>
-                            Correcte
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
+          {cours.map(coursItem => (
+            <div key={coursItem.id} className={fr.cx("fr-card", "fr-enlarge-link")}>
+              <div className={fr.cx("fr-card__body")}>
+                <div className={fr.cx("fr-card__content")}>
+                  <h3 className={fr.cx("fr-card__title")}>{coursItem.titre}</h3>
+                  <p className={fr.cx("fr-card__desc")}>{coursItem.matiere} • {coursItem.chapitre}</p>
+                  
+                  <div style={{ marginBottom: '1rem' }}>
+                    <Badge severity="info">
+                      {new Date(coursItem.created_at).toLocaleDateString('fr-FR')}
+                    </Badge>
+                    {coursItem.fichier_url && (
+                      <Badge severity="success" style={{ marginLeft: '0.5rem' }}>
+                        Fichier joint
+                      </Badge>
+                    )}
+                    {coursItem.texte_ocr && (
+                      <Badge severity="success" style={{ marginLeft: '0.5rem' }}>
+                        Texte extrait
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className={fr.cx("fr-card__start")} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <Button
+                      priority="secondary"
+                      size="small"
+                      onClick={() => handleGenerateQCM(coursItem.id)}
+                    >
+                      Générer QCM
+                    </Button>
+                    <Button
+                      priority="tertiary"
+                      size="small"
+                      linkProps={{ href: `/professeur/cours/${coursItem.id}` }}
+                    >
+                      Détails
+                    </Button>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <Button
-                    priority="primary"
-                    size="small"
-                    onClick={() => handleValidateQCM(qcm.id, 'valider')}
-                    disabled={isProcessing}
-                  >
-                    Valider
-                  </Button>
-                  <Button
-                    priority="secondary"
-                    size="small"
-                    onClick={() => openEditModal(qcm)}
-                    disabled={isProcessing}
-                  >
-                    Modifier
-                  </Button>
-                  <Button
-                    priority="tertiary"
-                    size="small"
-                    onClick={() => handleValidateQCM(qcm.id, 'supprimer')}
-                    disabled={isProcessing}
-                  >
-                    Supprimer
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
-      {/* Modal d'édition */}
-      <Modal
-        title="Modifier le QCM"
-        isOpen={showModal}
-        hide={() => setShowModal(false)}
-        size="large"
-      >
-        {selectedQCM && (
-          <div style={{ padding: '1rem' }}>
-            <Input
-              label="Question"
-              textArea
-              nativeTextAreaProps={{
-                value: editedQCM.question || '',
-                onChange: (e) => setEditedQCM({...editedQCM, question: e.target.value}),
-                rows: 3
+      {/* Modal création cours */}
+      <coursModal.Component title="Nouveau cours">
+        <div style={{ padding: '1rem' }}>
+          <Input
+            label="Titre du cours"
+            nativeInputProps={{
+              value: newCours.titre,
+              onChange: (e) => setNewCours({...newCours, titre: e.target.value}),
+              placeholder: "Ex: Les fractions"
+            }}
+          />
+
+          <Select
+            label="Matière"
+            nativeSelectProps={{
+              value: newCours.matiere,
+              onChange: (e) => setNewCours({...newCours, matiere: e.target.value})
+            }}
+          >
+            <option value="">Sélectionner une matière</option>
+            {matieres.map(matiere => (
+              <option key={matiere} value={matiere}>{matiere}</option>
+            ))}
+          </Select>
+
+          <Input
+            label="Chapitre"
+            nativeInputProps={{
+              value: newCours.chapitre,
+              onChange: (e) => setNewCours({...newCours, chapitre: e.target.value}),
+              placeholder: "Ex: Chapitre 3 - Les fractions"
+            }}
+          />
+
+          <Select
+            label="Type de programme"
+            nativeSelectProps={{
+              value: newCours.type_programme,
+              onChange: (e) => setNewCours({...newCours, type_programme: e.target.value})
+            }}
+          >
+            <option value="normal">Programme normal</option>
+            <option value="hors_programme">Hors programme</option>
+            <option value="brevet">Spécial Brevet</option>
+          </Select>
+
+          {newCours.type_programme === 'hors_programme' && (
+            <Select
+              label="Niveau cible"
+              nativeSelectProps={{
+                value: newCours.niveau_cible,
+                onChange: (e) => setNewCours({...newCours, niveau_cible: e.target.value})
               }}
-            />
+            >
+              {niveaux.map(niveau => (
+                <option key={niveau} value={niveau}>{niveau}</option>
+              ))}
+            </Select>
+          )}
 
-            <div style={{ marginTop: '1rem' }}>
-              <Input
-                label="Réponse 1"
-                nativeInputProps={{
-                  value: editedQCM.reponse_1 || '',
-                  onChange: (e) => setEditedQCM({...editedQCM, reponse_1: e.target.value})
-                }}
-              />
-              <Input
-                label="Réponse 2"
-                nativeInputProps={{
-                  value: editedQCM.reponse_2 || '',
-                  onChange: (e) => setEditedQCM({...editedQCM, reponse_2: e.target.value})
-                }}
-              />
-              <Input
-                label="Réponse 3"
-                nativeInputProps={{
-                  value: editedQCM.reponse_3 || '',
-                  onChange: (e) => setEditedQCM({...editedQCM, reponse_3: e.target.value})
-                }}
-              />
-              <Input
-                label="Réponse 4"
-                nativeInputProps={{
-                  value: editedQCM.reponse_4 || '',
-                  onChange: (e) => setEditedQCM({...editedQCM, reponse_4: e.target.value})
-                }}
-              />
-            </div>
+          <Upload
+            label="Fichier du cours (optionnel)"
+            hint="PDF, JPG, PNG acceptés (max 50MB)"
+            nativeInputProps={{
+              accept: ".pdf,.jpg,.jpeg,.png",
+              onChange: (e) => {
+                const file = e.target.files?.[0] || null;
+                setNewCours({...newCours, fichier: file});
+              }
+            }}
+          />
 
-            <div style={{ marginTop: '1rem' }}>
-              <RadioButtons
-                legend="Bonne réponse"
-                options={[
-                  { label: 'Réponse 1', nativeInputProps: { value: '1' } },
-                  { label: 'Réponse 2', nativeInputProps: { value: '2' } },
-                  { label: 'Réponse 3', nativeInputProps: { value: '3' } },
-                  { label: 'Réponse 4', nativeInputProps: { value: '4' } }
-                ]}
-                state={editedQCM.bonne_reponse?.toString()}
-                stateRelatedMessage="Sélectionnez la bonne réponse"
-                onChange={(value) => setEditedQCM({...editedQCM, bonne_reponse: parseInt(value)})}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-              <Button
-                onClick={() => handleValidateQCM(selectedQCM.id, 'modifier', editedQCM)}
-                disabled={isProcessing}
-                style={{ flex: 1 }}
-              >
-                {isProcessing ? 'Modification...' : 'Sauvegarder'}
-              </Button>
-              <Button
-                priority="secondary"
-                onClick={() => setShowModal(false)}
-                style={{ flex: 1 }}
-              >
-                Annuler
-              </Button>
-            </div>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+            <Button
+              onClick={handleCreateCours}
+              disabled={isCreating}
+              style={{ flex: 1 }}
+            >
+              {isCreating ? 'Création...' : 'Créer le cours'}
+            </Button>
+            <Button
+              priority="secondary"
+              onClick={() => coursModal.close()}
+              style={{ flex: 1 }}
+            >
+              Annuler
+            </Button>
           </div>
-        )}
-      </Modal>
+        </div>
+      </coursModal.Component>
     </div>
   );
 };
 
-export default QCMManagement;
+export default CoursManagement;

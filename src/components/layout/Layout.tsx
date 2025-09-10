@@ -83,8 +83,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       />
       
       <main style={{ flex: 1 }}>
+        <br></br>
         {children}
       </main>
+
+      <br></br>
       
       <Footer
         brandTop={
@@ -101,10 +104,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           créer des QCM automatiquement à partir de leurs cours grâce à l'IA.
         `}
         bottomItems={[
-          {
-            text: "Plan du site",
-            linkProps: { href: "/plan-site" }
-          },
           {
             text: "Données personnelles",
             linkProps: { href: "/donnees-personnelles" }
